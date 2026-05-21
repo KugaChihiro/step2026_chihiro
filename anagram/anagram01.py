@@ -16,7 +16,6 @@ def anagram01(x,y):
 			low = mid+1
 
 
-#　make_sorted()を呼び出して、辞書と入力の両方をソートする
 with open("words.txt","r") as dictionary_file:
   dictionary_list = [i.rstrip() for i in dictionary_file.readlines()]
 
