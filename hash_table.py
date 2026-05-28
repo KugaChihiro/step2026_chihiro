@@ -18,7 +18,7 @@ def calculate_hash(key):
     # Note: This is not a good hash function. Make it better!
     hash = 0
     for i in key:
-        hash += ord(i)
+        hash = hash * 29 + ord(i)
     return hash
 
 
@@ -59,12 +59,51 @@ class HashTable:
     # 'value': The value of the item.
     # Return value: True if a new item is added. False if the key already exists
     #               and the value is updated.
-    def put(self, key, value):
+
+    # 再ハッシュを行うための関数
+    def rehash(self,expand=False):
+        corr_hashtable = self.buckets # 現在のハッシュテーブル（＝再ハッシュ前）をいったん退避
+
+        if expand:
+            self.bucket_size = int(self.bucket_size * 1.5) # バケットサイズを拡大（1.5倍にする）
+        else:
+            self.bucket_size = max(97, int(self.bucket_size * 0.5)) # バケットサイズを縮小（0.5倍にする）
+
+        if self.bucket_size % 2 == 0: # 衝突を減らすため、バケットサイズを奇数にする
+            self.bucket_size += 1
+
+        self.item_count = 0 # self.item_countを初期化
+        self.buckets = [None] * self.bucket_size # バケットサイズ拡張に伴い、self.bucketsを更新
+
+        for corr_bucket in corr_hashtable: # 現在のハッシュテーブル（＝再ハッシュ前）の各要素についてループ
+            while corr_bucket: # ハッシュ衝突で繋がっている連結リストを、先頭から順に走査
+                next_node = corr_bucket.next # 次のノードを一旦退避
+                self.put(corr_bucket.key, corr_bucket.value,True) # 現在のハッシュテーブルより受け取ったkey,valueで、ハッシュテーブルを更新
+                corr_bucket = next_node # 次のノードへ移動
+
+    # Put an item to the hash table.
+    def put(self, key, value,is_rehash=False):
         assert type(key) == str
-        check_size(self.size(), self.bucket_size)  # Don't remove this code.
-        #------------------------#
-        # Write your code here!  #
-        #------------------------#
+        hashed_key = calculate_hash(key)
+        target = hashed_key % self.bucket_size
+        curr = self.buckets[target]
+
+        while curr:
+            if curr.key == key:
+                curr.value = value
+                return False
+            curr = curr.next
+
+        new_item = Item(key, value, self.buckets[target])
+        self.buckets[target] = new_item
+        self.item_count += 1
+
+        if self.item_count >= self.bucket_size * 0.7: #要素数がテーブルサイズの 70% を上回ったら、再ハッシュ（バケットサイズ拡大）を実行
+            self.rehash(True)
+
+        if not is_rehash:
+            check_size(self.size(), self.bucket_size)
+
         return True
 
     # Get an item from the hash table.
@@ -74,11 +113,20 @@ class HashTable:
     #               Otherwise, return (None, False).
     def get(self, key):
         assert type(key) == str
+
+        hashed_key = calculate_hash(key)
+        target = hashed_key % self.bucket_size
+        curr = self.buckets[target]
+
+        ret_val = (None, False)
+        while curr:
+            if curr.key == key:
+                ret_val = (curr.value, True)
+                break
+            curr = curr.next
+
         check_size(self.size(), self.bucket_size)  # Don't remove this code.
-        #------------------------#
-        # Write your code here!  #
-        #------------------------#
-        return (None, False)
+        return ret_val
 
     # Delete an item from the hash table.
     #
@@ -87,10 +135,27 @@ class HashTable:
     #               otherwise.
     def delete(self, key):
         assert type(key) == str
-        #------------------------#
-        # Write your code here!  #
-        #------------------------#
-        pass
+        prev = None
+        hashed_key = calculate_hash(key)
+        target = hashed_key % self.bucket_size
+        curr = self.buckets[target]
+
+        while curr:
+            if curr.key == key:
+                if prev is None:
+                    self.buckets[target] = curr.next
+                else:
+                    prev.next = curr.next
+                self.item_count -= 1
+
+                #バケットサイズが100以上で要素数がテーブルサイズの 30% を上回ったら、再ハッシュ（バケットサイズ拡大）を実行
+                if self.bucket_size >= 100 and self.item_count < self.bucket_size * 0.3:
+                    self.rehash()
+
+                return True
+            prev = curr
+            curr = curr.next
+        return False
 
     # Return the total number of items in the hash table.
     def size(self):
