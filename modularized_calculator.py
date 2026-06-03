@@ -55,43 +55,34 @@ def tokenize(line):
 
 # 掛け算と割り算の処理
 def evaluate_multiplication_division(tokens):
-    result_multiplication_division = []
-    calculated_answer = 1
-    tokens.insert(0, {'type': 'PLUS'}) # Insert a dummy '+' token
-    index = 1
-    finished_check_index = 0
-    is_multiplicating_dividing = False
+
+    result_multiplication_division = [] # 足し算と引き算の処理に渡す用のリストを作成
+
+    index = 0
     while index < len(tokens):
-        if tokens[index]['type'] == 'NUMBER':
-            if tokens[index - 1]['type'] == 'TIMES':
-                if not is_multiplicating_dividing:
-                    calculated_answer =  tokens[index-2]['number']
-                    is_multiplicating_dividing = True
-                calculated_answer *= tokens[index]['number']
-                result_multiplication_division += tokens[finished_check_index:index-2]
-                finished_check_index = index-2
-            elif tokens[index - 1]['type'] == 'DIVIDED':
-                if not is_multiplicating_dividing:
-                    calculated_answer =  tokens[index-2]['number']
-                    is_multiplicating_dividing = True
-                calculated_answer /=  tokens[index]['number']
-                result_multiplication_division += tokens[finished_check_index:index-2]
-                finished_check_index = index-2
-            elif tokens[index - 1]['type'] == 'PLUS' or tokens[index - 1]['type'] == 'MINUS':
-                if is_multiplicating_dividing:
-                    is_multiplicating_dividing = False
-                    finished_check_index = index-1
-                    calculated_token =  {'type':'NUMBER','number':calculated_answer}
-                    result_multiplication_division.append(calculated_token)
+        curr_token = tokens[index]
+
+        # 今見ているトークンが*か/の場合
+        if curr_token['type'] == 'TIMES' or curr_token['type'] == 'DIVIDED':
+            recent_token = result_multiplication_division.pop() # 直前にリストに入れた数字を取り出し、リストから削除する
+
+            index += 1  # 演算子の次のトークンに進む
+            next_token = tokens[index]
+
+            if curr_token['type'] == 'TIMES':
+                calculated_answer = recent_token['number'] * next_token['number']
             else:
-                print('Invalid syntax')
-                exit(1)
+                calculated_answer = recent_token['number'] / next_token['number']
+
+            # 計算結果を新しい数字トークンとしてリストに追加
+            result_multiplication_division.append({'type': 'NUMBER', 'number': calculated_answer})
+
+        else:
+            # 数字、PLUS、MINUS はそのまま結果リストへ流す
+            result_multiplication_division.append(curr_token)
+
         index += 1
-    if is_multiplicating_dividing:
-        calculated_token =  {'type':'NUMBER','number':calculated_answer}
-        result_multiplication_division.append(calculated_token)
-    else:
-        result_multiplication_division += tokens[finished_check_index:]
+
     return result_multiplication_division
 
 # 足し算と引き算の処理
