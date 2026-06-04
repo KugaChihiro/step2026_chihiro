@@ -68,34 +68,22 @@ def tokenize(line):
 # 掛け算と割り算の処理
 def evaluate_multiplication_division(tokens):
 
-    result_multiplication_division = [] # 足し算と引き算の処理に渡す用のリストを作成
-
     index = 0
     while index < len(tokens):
-        curr_token = tokens[index]
-
         # 今見ているトークンが*か/の場合
-        if curr_token['type'] == 'TIMES' or curr_token['type'] == 'DIVIDED':
-            recent_token = result_multiplication_division.pop() # 直前にリストに入れた数字を取り出し、リストから削除する
-
-            index += 1  # 演算子の次のトークンに進む
-            next_token = tokens[index]
-
-            if curr_token['type'] == 'TIMES':
-                calculated_answer = recent_token['number'] * next_token['number']
+        if tokens[index]['type'] == 'TIMES' or tokens[index]['type'] == 'DIVIDED':
+            if tokens[index]['type']  == 'TIMES':
+                answer = tokens[index-1]['number'] * tokens[index+1]['number']
             else:
-                calculated_answer = recent_token['number'] / next_token['number']
+                answer = tokens[index-1]['number'] / tokens[index+1]['number']
 
             # 計算結果を新しい数字トークンとしてリストに追加
-            result_multiplication_division.append({'type': 'NUMBER', 'number': calculated_answer})
-
+            del tokens[index-1:index+2]
+            new_token = {'type':'NUMBER','number':answer}
+            tokens.insert(index-1,new_token)
         else:
-            # 数字、PLUS、MINUS はそのままリストへ流す
-            result_multiplication_division.append(curr_token)
-
-        index += 1
-
-    return result_multiplication_division
+            index += 1
+    return tokens
 
 # 足し算と引き算の処理
 def evaluate_addition_subtraction(tokens):
@@ -139,8 +127,8 @@ def evaluate_parentheses(tokens):
 # 四則演算を行う
 # 掛け算・割り算→足し算・引き算
 def evaluate_4_arithmetic_operations(tokens):
-    result_multiplication_division = evaluate_multiplication_division(tokens)
-    answer = evaluate_addition_subtraction(result_multiplication_division)
+    tokens = evaluate_multiplication_division(tokens)
+    answer = evaluate_addition_subtraction(tokens)
     return answer
 
 # カッコが1つでも残っていれば、カッコ内を計算（evaluate_parentheses）して、最初からやり直す（再帰）
