@@ -78,7 +78,7 @@ def evaluate_multiplication_division(tokens):
             result_multiplication_division.append({'type': 'NUMBER', 'number': calculated_answer})
 
         else:
-            # 数字、PLUS、MINUS はそのまま結果リストへ流す
+            # 数字、PLUS、MINUS はそのままリストへ流す
             result_multiplication_division.append(curr_token)
 
         index += 1
@@ -122,6 +122,17 @@ def test(line):
 def run_test():
     print("==== Test started! ====")
     test("1+2")
+    test("2-1")
+    test("1-2")
+    test("2*2")
+    test("2/2")
+    test("2*2*2")
+    test("2*2-2")
+    test("2-2*2")
+    test("8-2*2-2")
+    test("0.1+0.2")
+    test("0.1+1")
+    test("1+0.1")
     test("1.0+2.1-3")
     print("==== Test finished! ====\n")
 
