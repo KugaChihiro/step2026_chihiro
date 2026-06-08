@@ -41,6 +41,28 @@ def read_right_parentheses(line, index):
     token = {'type': 'R_PARENTHESES'}
     return token, index + 1
 
+def read_word(line, index):
+    start = index
+    # アルファベットが続く限り、indexを進める
+    while index < len(line) and line[index].isalpha():
+        index += 1
+
+    # 切り出した単語（例: "abs", "int", "round"）
+    word = line[start:index]
+
+    # 単語の種類に応じてトークンを作る
+    if word == 'abs':
+        token = {'type': 'ABS'}
+    elif word == 'int':
+        token = {'type': 'INT'}
+    elif word == 'round':
+        token = {'type': 'ROUND'}
+    else:
+        print(f"Unknown function or word: {word}")
+        exit(1)
+
+    return token, index
+
 def tokenize(line):
     tokens = []
     index = 0
@@ -59,15 +81,17 @@ def tokenize(line):
             (token, index) = read_left_parentheses(line, index)
         elif line[index] == ')':
             (token, index) = read_right_parentheses(line, index)
+        elif line[index].isalpha():
+            (token, index) = read_word(line, index)
         else:
-            print('Invalid character found: ' + line[index])
-            exit(1)
+            # スペースなどを無視するための安全弁
+            index += 1
+            continue
         tokens.append(token)
     return tokens
 
 # 掛け算と割り算の処理
 def evaluate_multiplication_division(tokens):
-
     index = 0
     while index < len(tokens):
         # 今見ているトークンが*か/の場合
@@ -117,9 +141,32 @@ def evaluate_parentheses(tokens):
             while 0 <= new_index < len(tokens): # ")"が一番初めにindexから、反対方向にさかのぼり、"("を探す。
                 if tokens[new_index]['type'] == "L_PARENTHESES":
                     answer = evaluate_4_arithmetic_operations(tokens[new_index+1:index]) # ()のセットが見つかった場合、その（）内で四則演算を行う。
-                    new_token = {'type':'NUMBER','number': answer} # 四則演算の結果をtokenとして追加。不要な箇所は削除。
-                    del tokens[new_index:index+1]
-                    tokens.insert(new_index,new_token)
+
+                    # 削除を開始する位置（関数の有無で変える）を管理する変数
+                    start_delete_index = new_index
+
+                    # カッコの1つ前に関数（ABS, INT, ROUND）があるかチェック
+                    if new_index > 0 and tokens[new_index-1]['type'] in ('ABS', 'INT', 'ROUND'):
+                        func_type = tokens[new_index-1]['type']
+                        start_delete_index = new_index - 1  # 関数ごと削除するためにインデックスを1つ前にずらす
+
+                        if func_type == "ABS":
+                            if answer < 0:
+                                answer = -answer
+                        elif func_type == "INT":
+                            answer = answer // 1        # 1で割った商（整数部）
+                        elif func_type == "ROUND":
+                            integer_answer = answer // 1
+                            fractional_answer = answer % 1      # 1で割った余り（小数部）
+                            if fractional_answer >= 0.5:
+                                integer_answer += 1
+                            answer = integer_answer
+
+                    new_token = {'type':'NUMBER','number': answer}
+
+                    # 関数トークンやカッコをまとめて綺麗に削除して置き換え
+                    del tokens[start_delete_index:index+1]
+                    tokens.insert(start_delete_index, new_token)
                     return tokens
                 new_index -= 1
         index += 1
@@ -173,6 +220,10 @@ def run_test():
     test("(1+2*3)")
     test("((1+2)*3)")
     test("(1+2)*(1+3)")
+    test("abs(1-3)")
+    test("int(1.5+2.1)")
+    test("round(1.6)")
+    test("12 + abs(int(round(1.55) + abs(int(2.3 + 4))))")
     print("==== Test finished! ====\n")
 
 run_test()
@@ -181,4 +232,4 @@ while True:
     print('> ', end="")
     line = input()
     tokens = tokenize(line)
-    evaluate(tokens)
+    print(evaluate(tokens))
